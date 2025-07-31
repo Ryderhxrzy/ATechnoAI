@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Techno.ai</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</head>
+<body>
+  <div id="app-container">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <button class="sidebar-minimizer">
+    <i class="fas fa-times"></i>
+  </button>
+      <!-- Logo Section -->
+      <div class="sidebar-logo">
+        <div class="logo-icon">
+          <i class="fas fa-cog gear"></i>
+          <i class="fas fa-robot robot"></i>
+        </div>
+        <div class="logo-text">Techno.ai</div>
+      </div>
+
+      <button class="new-chat-btn" onclick="startNewChat()">
+        <i class="fas fa-plus"></i>
+        <span>New Chat</span>
+      </button>
+
+      <div class="chat-history" id="chat-history">
+        <div class="chat-item active" data-chat-id="1">
+          <div class="chat-title">Welcome Chat</div>
+          <div class="chat-preview">How can I help you today?</div>
+          <div class="chat-time">Just now</div>
+        </div>
+      </div>
+      <div class="user-profile">
+        <div class="profile-avatar">JA</div>
+        <div class="profile-info">
+          <div class="profile-name">Jeeee-Arrr</div>
+          <div class="profile-status">
+            <div class="status-dot"></div>
+            Online
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-container">
+      <div class="chat-header">
+        <div class="header-info">
+          <h2>
+            <div class="header-minimizer" id="header-minimizer">
+              <i class="fas fa-bars"></i>
+            </div>
+            Techno.ai
+          </h2>
+        </div>
+        <div class="header-actions">
+          <button class="action-btn" id="theme-toggle-btn" title="Toggle dark/light mode">
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="chat-box">
+        <div class="welcome-message">
+          <div class="welcome-icon">
+            <i class="fas fa-robot"></i>
+          </div>
+          <h3>Welcome to Techno.ai!</h3>
+          <p>I'm here to help you with coding, questions, and tasks. Ask me anything!</p>
+        </div>
+      </div>
+
+      <div class="typing-indicator" id="typing-indicator">
+        <div class="typing-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+
+      <div class="input-container">
+        <textarea id="user-input" placeholder="Type your message..." rows="1" maxlength="2000"></textarea>
+        <button id="send-btn" onclick="sendMessage()">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const textarea = document.getElementById('user-input');
+    textarea.addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    textarea.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    function detectLanguage(code) {
+      const patterns = {
+        javascript: /(?:function|const|let|var|=>|console\.log|document\.|window\.)/i,
+        python: /(?:def |import |from |print\(|if __name__|class |\.py)/i,
+        java: /(?:public class|public static void|import java\.|System\.out)/i,
+        html: /(?:<html|<div|<body|<head|<script|<!DOCTYPE)/i,
+        css: /(?:\.[\w-]+\s*\{|#[\w-]+\s*\{|@media|background:|color:)/i,
+        sql: /(?:SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|CREATE TABLE)/i,
+        php: /(?:<\?php|\$\w+|function\s+\w+|echo\s+)/i,
+        cpp: /(?:#include|int main\(|std::|cout <<|cin >>)/i,
+        csharp: /(?:using System|public class|static void Main|Console\.WriteLine)/i
+      };
+      
+      for (const [lang, pattern] of Object.entries(patterns)) {
+        if (pattern.test(code)) {
+          return lang;
+        }
+      }
+      return 'text';
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const copyBtn = event.target;
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+        }, 2000);
+      });
+    }
+
+    function formatBotResponse(text) {
+      const codeBlocks = [];
+      let codeBlockIndex = 0;
+      
+      text = text.replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, language, code) => {
+        const detectedLang = language || detectLanguage(code);
+        const langDisplay = detectedLang.charAt(0).toUpperCase() + detectedLang.slice(1);
+
+        const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
+        codeBlocks[codeBlockIndex] = `<div class="code-block">
+          <div class="code-header">
+            <span>${langDisplay}</span>
+            <button class="copy-btn" data-code="${encodeURIComponent(code)}">
+              <i class="fas fa-copy"></i> Copy
+            </button>
+          </div>
+          <div class="code-content">
+            <pre><code class="language-${detectedLang}">${escapeHtml(code)}</code></pre>
+          </div>
+        </div>`;
+        
+        codeBlockIndex++;
+        return placeholder;
+      });
+
+      const inlineCodeBlocks = [];
+      let inlineCodeIndex = 0;
+      
+      text = text.replace(/`([^`]+)`/g, (match, code) => {
+        const placeholder = `__INLINE_CODE_${inlineCodeIndex}__`;
+        inlineCodeBlocks[inlineCodeIndex] = `<span class="inline-code">${escapeHtml(code)}</span>`;
+        inlineCodeIndex++;
+        return placeholder;
+      });
+
+      text = text
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n(?!\n)/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^#\s(.*$)/gm, '<h3>$1</h3>')
+        .replace(/^##\s(.*$)/gm, '<h4>$1</h4>')
+        .replace(/^\s*-\s(.*$)/gm, '<li>$1</li>')
+        .replace(/^\s*\*\s(.*$)/gm, '<li>$1</li>')
+        .replace(/^>\s(.*$)/gm, '<blockquote>$1</blockquote>');
+
+      if (!text.includes('<h3>') && !text.includes('<h4>') && !text.includes('<blockquote>')) {
+        text = `<p>${text}</p>`;
+      }
+
+      text = text.replace(/(<li>.*?<\/li>)+/g, (match) => {
+        return `<ul>${match}</ul>`;
+      });
+
+      codeBlocks.forEach((codeBlock, index) => {
+        text = text.replace(`__CODE_BLOCK_${index}__`, codeBlock);
+      });
+      
+      inlineCodeBlocks.forEach((inlineCode, index) => {
+        text = text.replace(`__INLINE_CODE_${index}__`, inlineCode);
+      });
+
+      return text;
+    }
+
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('copy-btn') || e.target.closest('.copy-btn')) {
+        const btn = e.target.closest('.copy-btn');
+        const code = decodeURIComponent(btn.getAttribute('data-code'));
+        navigator.clipboard.writeText(code).then(() => {
+          const originalText = btn.textContent;
+          btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+          setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+          }, 2000);
+        });
+      }
+    });
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showTypingIndicator() {
+      const indicator = document.getElementById('typing-indicator');
+      const chatBox = document.getElementById('chat-box');
+      indicator.style.display = 'flex';
+      chatBox.appendChild(indicator);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const indicator = document.getElementById('typing-indicator');
+      indicator.style.display = 'none';
+    }
+
+    function sendMessage() {
+      const userInput = textarea.value.trim();
+      const sendBtn = document.getElementById('send-btn');
+      if (userInput === "") return;
+
+      const chatBox = document.getElementById('chat-box');
+
+      const userMessage = document.createElement('div');
+      userMessage.className = 'message user-message';
+      userMessage.textContent = userInput;
+      chatBox.appendChild(userMessage);
+
+      textarea.value = '';
+      textarea.style.height = 'auto';
+      sendBtn.disabled = true;
+      showTypingIndicator();
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Real implementation - send to backend
+      fetch("chatbot.php", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userInput })
+      })
+        .then(response => response.json())
+        .then(data => {
+          hideTypingIndicator();
+          const botMessage = document.createElement('div');
+          botMessage.className = 'message bot-message';
+
+          if (data.error) {
+            botMessage.innerHTML = `<div class="error-message">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span>${data.error}</span>
+            </div>`;
+          } else {
+            botMessage.innerHTML = formatBotResponse(data.response);
+          }
+
+          chatBox.appendChild(botMessage);
+          
+          if (window.Prism) {
+            Prism.highlightAllUnder(botMessage);
+          }
+          
+          chatBox.scrollTop = chatBox.scrollHeight;
+          sendBtn.disabled = false;
+        })
+        .catch(() => {
+          hideTypingIndicator();
+          const errorMessage = document.createElement('div');
+          errorMessage.className = 'message bot-message error-message';
+          errorMessage.innerHTML = `
+            <div class="error-message">
+              <i class="fas fa-wifi"></i>
+              <span>Connection error. Please try again.</span>
+            </div>
+          `;
+          chatBox.appendChild(errorMessage);
+          chatBox.scrollTop = chatBox.scrollHeight;
+          sendBtn.disabled = false;
+        });
+    }
+
+    
+
+    function startNewChat() {
+      const chatBox = document.getElementById('chat-box');
+      chatBox.innerHTML = `
+        <div class="welcome-message">
+          <div class="welcome-icon">
+            <i class="fas fa-robot"></i>
+          </div>
+          <h3>New Conversation Started!</h3>
+          <p>What would you like to talk about today?</p>
+        </div>
+      `;
+      
+      document.querySelectorAll('.chat-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      
+      textarea.focus();
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      if (window.innerWidth <= 768) {
+        sidebar.classList.toggle('open');
+      } else {
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        updateMinimizerIcon();
+      }
+    }
+
+    function updateMinimizerIcon() {
+      const sidebar = document.getElementById('sidebar');
+      const headerMinimizer = document.querySelector('.header-minimizer i');
+      
+      if (sidebar.classList.contains('collapsed')) {
+        headerMinimizer.className = 'fas fa-chevron-right';
+      } else {
+        headerMinimizer.className = 'fas fa-chevron-left';
+      }
+    }
+
+    document.querySelectorAll('.chat-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+        
+        const chatBox = document.getElementById('chat-box');
+        const chatTitle = this.querySelector('.chat-title').textContent;
+        chatBox.innerHTML = `
+          <div class="welcome-message">
+            <div class="welcome-icon">
+              <i class="fas fa-robot"></i>
+            </div>
+            <h3>${chatTitle}</h3>
+            <p>This is a static demo. In a real implementation, this would load the chat history.</p>
+          </div>
+        `;
+      });
+    });
+
+    window.addEventListener('load', () => textarea.focus());
+
+    let firstMessage = true;
+    const originalSendMessage = sendMessage;
+    sendMessage = function () {
+      if (firstMessage) {
+        const welcomeMsg = document.querySelector('.welcome-message');
+        if (welcomeMsg) {
+          welcomeMsg.style.animation = 'slideIn 0.3s ease-out reverse';
+          setTimeout(() => welcomeMsg.remove(), 300);
+        }
+        firstMessage = false;
+      }
+      originalSendMessage();
+    };
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const themeBtn = document.getElementById('theme-toggle-btn');
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+
+      if (newTheme === 'dark') {
+        themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+      } else {
+        themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+  // Theme initialization (keep your existing code)
+  const html = document.documentElement;
+  const themeBtn = document.getElementById('theme-toggle-btn');
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    html.setAttribute('data-theme', savedTheme);
+  }
+  const currentTheme = html.getAttribute('data-theme');
+  if (currentTheme === 'dark') {
+    themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+  } else {
+    themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+  }
+  
+  // Initialize sidebar functionality
+  initSidebar();
+});
+
+function initSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  const headerMinimizer = document.querySelector('.header-minimizer');
+  const sidebarMinimizer = document.querySelector('.sidebar-minimizer');
+
+  // Set initial state
+  if (window.innerWidth <= 768) {
+    sidebar.classList.remove('collapsed', 'open');
+  } else {
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (isCollapsed) sidebar.classList.add('collapsed');
+  }
+
+  // Mobile menu button click
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      sidebar.classList.add('open');
+      overlay.style.display = 'block';
+    });
+  }
+
+  // Header minimizer click
+  if (headerMinimizer) {
+    headerMinimizer.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleSidebar();
+    });
+  }
+
+  // Sidebar minimizer click
+  if (sidebarMinimizer) {
+    sidebarMinimizer.innerHTML = '<i class="fas fa-times"></i>'; // Ensure icon exists
+    sidebarMinimizer.addEventListener('click', function(e) {
+      e.stopPropagation();
+      sidebar.classList.remove('open');
+      overlay.style.display = 'none';
+    });
+  }
+
+  // Overlay click
+  if (overlay) {
+    overlay.addEventListener('click', function() {
+      sidebar.classList.remove('open');
+      overlay.style.display = 'none';
+    });
+  }
+
+  // Window resize handler
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+      sidebar.classList.remove('open');
+      if (overlay) overlay.style.display = 'none';
+    }
+  });
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  
+  if (window.innerWidth <= 768) {
+    // Mobile behavior
+    sidebar.classList.toggle('open');
+    if (overlay) {
+      overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+    }
+  } else {
+    // Desktop behavior
+    sidebar.classList.toggle('collapsed');
+    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+  }
+}
+function toggleTheme() {
+  const html = document.documentElement;
+  const themeBtn = document.getElementById('theme-toggle-btn');
+  const currentTheme = html.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+
+  if (newTheme === 'dark') {
+    themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+  } else {
+    themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+  }
+}
+
+document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+  </script>
+</body>
+</html>
