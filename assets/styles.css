@@ -2,9 +2,11 @@
 :root {
   /* Light mode colors */
   --bg-primary: #ffffff;
-  --bg-secondary: #f5f7fa;
+  --bg-secondary: #FFFFFF;
   --bg-tertiary: #ebeff5;
-  --bg-elevated: #ffffff;
+  --bg-elevated: #F5F5F5;
+
+  --utility-button-bg: #EEEEEE;
   
   --text-primary: #1a1a1a;
   --text-secondary: #4a5568;
@@ -15,9 +17,9 @@
   --border-secondary: #d0d9e6;
   --border-focus: #4299e1;
   
-  --accent-primary: #3182ce;
+  --accent-primary: #BB86FC;
   --accent-hover: #2c5282;
-  --accent-light: #ebf8ff;
+  --accent-light: #EEEEEE;
   
   --success: #38a169;
   --warning: #d69e2e;
@@ -42,23 +44,24 @@
 
 /* Dark mode colors */
 [data-theme="dark"] {
-  --bg-primary: #2d3748;
-  --bg-secondary: #1a202c;
+  --bg-primary: #1E1E1E;
+  --bg-secondary: #121212;
   --bg-tertiary: #4a5568;
-  --bg-elevated: #2d3748;
+  --bg-elevated: #1E1E1E;
   
-  --text-primary: #f7fafc;
-  --text-secondary: #e2e8f0;
+  --text-primary: #E0E0E0;
+  --text-secondary: #A0A0A0;
   --text-tertiary: #cbd5e0;
   --text-muted: #a0aec0;
+  --text-links: #90CAF9;
   
-  --border-primary: #4a5568;
-  --border-secondary: #718096;
+  --border-primary: #333333;
+  --border-secondary: #333333;
   --border-focus: #63b3ed;
   
   --accent-primary: #63b3ed;
   --accent-hover: #90cdf4;
-  --accent-light: #2d3748;
+  --accent-light: #2A2A2A;
   
   --success: #68d391;
   --warning: #f6ad55;
@@ -424,13 +427,10 @@ body {
 
 .chat-item:hover {
   background: var(--accent-light);
-  border-color: var(--border-secondary);
 }
 
 .chat-item.active {
   background: var(--accent-light);
-  border-color: var(--border-secondary);
-  box-shadow: var(--shadow-sm);
 }
 
 .chat-title {
@@ -757,7 +757,7 @@ body {
   resize: none;
   min-height: 44px;
   font-family: inherit;
-  background: var(--bg-primary);
+  background: var(--bg-elevated);
   color: var(--text-primary);
   overflow: hidden;
   max-height: 120px;
@@ -811,11 +811,9 @@ body {
   color: var(--text-secondary);
   margin: 50px auto;
   padding: 40px;
-  background: var(--bg-elevated);
   border-radius: 16px;
   border: 1px solid var(--border-primary);
   max-width: 500px;
-  box-shadow: var(--shadow-lg);
 }
 
 .welcome-icon {
