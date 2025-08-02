@@ -291,7 +291,7 @@ body {
         }
 
         .theme-toggle:hover {
-            background: var(--accent-primary);
+            background: var(--accent-light-hover);
             color: white;
         }
 
