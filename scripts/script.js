@@ -286,6 +286,33 @@ async function typeMessage(element, text, speed = 30) {
   });
 }
 
+function autoResize() {
+            // Reset height to auto to get the correct scrollHeight
+            textarea.style.height = 'auto';
+            
+            // Calculate the new height (minimum of 2 rows)
+            const minHeight = parseInt(getComputedStyle(textarea).lineHeight) * 2;
+            const newHeight = Math.max(Math.min(textarea.scrollHeight, 150), minHeight);
+            
+            // Set the new height
+            textarea.style.height = newHeight + 'px';
+            
+            // Show scrollbar if content exceeds max height
+            if (textarea.scrollHeight > 150) {
+                textarea.style.overflowY = 'auto';
+            } else {
+                textarea.style.overflowY = 'hidden';
+            }
+        }
+
+        // Event listeners for auto-resize
+        textarea.addEventListener('input', autoResize);
+        textarea.addEventListener('paste', () => {
+            setTimeout(autoResize, 10);
+        });
+
+        autoResize();
+
 async function sendMessage() {
   const userInput = textarea.value.trim();
   const sendBtn = document.getElementById('send-btn');
@@ -310,7 +337,7 @@ async function sendMessage() {
   chatBox.scrollTop = chatBox.scrollHeight;
 
   try {
-    const response = await fetch("chatbot.php", {
+    const response = await fetch("dwa4P1/chatbot.php", {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: userInput })
@@ -351,6 +378,7 @@ async function sendMessage() {
     sendBtn.disabled = false;
   }
 }
+
 
 function startNewChat() {
   const chatBox = document.getElementById('chat-box');

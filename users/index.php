@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Techno.ai</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="../assets/styles.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
@@ -86,14 +86,16 @@
       </div>
 
       <div class="input-container">
-        <textarea id="user-input" placeholder="Type your message..." rows="1" maxlength="2000"></textarea>
-        <button id="send-btn" onclick="sendMessage()">
-          <i class="fas fa-paper-plane"></i>
-        </button>
+          <div class="input-wrapper">
+              <textarea id="user-input" placeholder="Message Techno.ai" rows="1"></textarea>
+              <button id="send-btn" onclick="sendMessage()">
+                <i class="fas fa-arrow-up"></i>
+              </button>
+          </div>
       </div>
     </div>
   </div>
 
-  <script src="scripts/script.js"></script>
+  <script src="../scripts/script.js"></script>
 </body>
 </html>
