@@ -1,3 +1,28 @@
+<?php
+session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION['user'])) {
+    header('Location: ../login.php');
+    exit;
+}
+
+$user = $_SESSION['user'];
+
+// Get user's full name and first name for display
+$fullName = $user['name'];
+$firstName = explode(' ', $user['name'])[0];
+
+// Get user initials for fallback avatar
+$nameParts = explode(' ', $user['name']);
+$initials = '';
+if (count($nameParts) >= 2) {
+    $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+} else {
+    $initials = strtoupper(substr($nameParts[0], 0, 2));
+}
+?>
+
 <!DOCTYPE html>
 <html data-theme="dark">
 <head>
@@ -38,10 +63,25 @@
           <div class="chat-time">Just now</div>
         </div>
       </div>
+      
+      <!-- Updated User Profile Section -->
       <div class="user-profile">
-        <div class="profile-avatar">JA</div>
+        <div class="profile-avatar">
+          <?php if (!empty($user['picture'])): ?>
+            <img src="<?php echo htmlspecialchars($user['picture']); ?>" 
+                 alt="<?php echo htmlspecialchars($user['name']); ?>"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="profile-avatar-fallback" style="display: none;">
+              <?php echo $initials; ?>
+            </div>
+          <?php else: ?>
+            <div class="profile-avatar-fallback">
+              <?php echo $initials; ?>
+            </div>
+          <?php endif; ?>
+        </div>
         <div class="profile-info">
-          <div class="profile-name">Jeeee-Arrr</div>
+          <div class="profile-name"><?php echo htmlspecialchars($fullName); ?></div>
           <div class="profile-status">
             <div class="status-dot"></div>
             Online
@@ -72,7 +112,7 @@
           <div class="welcome-icon">
             <i class="fas fa-robot"></i>
           </div>
-          <h3>Welcome to Techno.ai!</h3>
+          <h3>Welcome to Techno.ai, <?php echo htmlspecialchars($firstName); ?>!</h3>
           <p>I'm here to help you with coding, questions, and tasks. Ask me anything!</p>
         </div>
       </div>
@@ -97,5 +137,13 @@
   </div>
 
   <script src="../scripts/script.js"></script>
+  <script>
+    // Add logout function
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        window.location.href = '../logout.php';
+      }
+    }
+  </script>
 </body>
 </html>

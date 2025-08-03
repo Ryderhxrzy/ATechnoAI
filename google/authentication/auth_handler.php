@@ -109,7 +109,7 @@ if (isset($_GET['code'])) {
         unset($_SESSION['auth_error']);
 
         // Redirect to welcome page
-        header('Location: ../../welcome.php');
+        header('Location: ../../users/index.php');
         exit;
         
     } catch (Exception $e) {
