@@ -597,3 +597,94 @@ function initSidebar() {
 }
 
 document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+
+// Enhanced Logout functionality
+function setupLogout() {
+  const userProfile = document.querySelector('.user-profile');
+  const profileAvatar = userProfile.querySelector('.profile-avatar');
+  const profileInfo = userProfile.querySelector('.profile-info');
+  
+  // Create logout dropdown
+  const logoutDropdown = document.createElement('div');
+  logoutDropdown.className = 'logout-dropdown';
+  logoutDropdown.innerHTML = `
+    <div class="logout-item">
+      <i class="fas fa-sign-out-alt"></i>
+      <span>Logout</span>
+    </div>
+  `;
+  
+  // Toggle dropdown when clicking profile
+  profileAvatar.addEventListener('click', function(e) {
+    e.stopPropagation();
+    logoutDropdown.style.display = logoutDropdown.style.display === 'block' ? 'none' : 'block';
+  });
+  
+  profileInfo.addEventListener('click', function(e) {
+    e.stopPropagation();
+    logoutDropdown.style.display = logoutDropdown.style.display === 'block' ? 'none' : 'block';
+  });
+  
+  // Add dropdown to profile
+  userProfile.appendChild(logoutDropdown);
+  
+  // Handle logout click
+  logoutDropdown.querySelector('.logout-item').addEventListener('click', function(e) {
+    e.stopPropagation();
+    showLogoutConfirmation();
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function() {
+    logoutDropdown.style.display = 'none';
+  });
+  
+  // Close dropdown when scrolling
+  window.addEventListener('scroll', function() {
+    logoutDropdown.style.display = 'none';
+  }, true);
+}
+
+// Enhanced SweetAlert confirmation
+function showLogoutConfirmation() {
+  const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+  
+  Swal.fire({
+    title: 'Logout?',
+    html: '<div style="margin-bottom:15px;">Are you sure you want to sign out?</div>',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, Logout',
+    cancelButtonText: 'Cancel',
+    background: isDarkMode ? 'var(--bg-elevated)' : '#ffffff',
+    color: isDarkMode ? 'var(--text-primary)' : '#1a1a1a',
+    customClass: {
+      popup: 'logout-swal',
+      title: 'logout-swal-title',
+      htmlContainer: 'logout-swal-content',
+      actions: 'logout-swal-actions',
+      confirmButton: 'logout-swal-confirm',
+      cancelButton: 'logout-swal-cancel'
+    },
+    buttonsStyling: false,
+    showClass: {
+      popup: 'swal2-show',
+      backdrop: 'swal2-backdrop-show',
+      icon: 'swal2-icon-show'
+    },
+    hideClass: {
+      popup: 'swal2-hide',
+      backdrop: 'swal2-backdrop-hide',
+      icon: 'swal2-icon-hide'
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      window.location.href = '../logout.php';
+    }
+  });
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  setupLogout();
+});

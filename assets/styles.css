@@ -347,6 +347,92 @@ body {
   background: var(--accent-light-hover);
 }
 
+
+.header-minimizer i {
+  font-size: 1.2rem;
+  transition: transform 0.2s ease;
+}
+
+.user-profile {
+  position: relative;
+  cursor: pointer;
+}
+
+.logout-dropdown {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 15px;
+  width: auto;
+  min-width: 160px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 8px 0;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  margin-bottom: 10px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Collapsed sidebar adjustments */
+.sidebar.collapsed .logout-dropdown {
+  left: 10px;
+  min-width: 140px;
+}
+
+.logout-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sidebar.collapsed .logout-item {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+.logout-item:hover {
+  background: var(--accent-light);
+}
+
+.logout-item i {
+  color: var(--error);
+  width: 18px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .logout-dropdown {
+    left: 5px;
+  }
+  
+  .sidebar.open .logout-dropdown {
+    left: 15px;
+  }
+}
+
+/* Position adjustments for avatar fallback */
+.profile-avatar {
+  position: relative;
+}
+
+.logout-dropdown {
+  z-index: 1001;
+}
+
 .header-actions {
   display: flex;
   gap: 8px;
@@ -579,6 +665,7 @@ body {
   width: 36px;
   height: 36px;
 }
+
 
 /* Hover effects for minimized state */
 .sidebar.collapsed .user-profile:hover .profile-info {

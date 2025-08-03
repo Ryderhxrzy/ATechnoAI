@@ -30,10 +30,12 @@ if (count($nameParts) >= 2) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Techno.ai</title>
   <link rel="stylesheet" href="../assets/styles.css">
+  <link rel="stylesheet" href="../assets/sweetalert.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
   <div id="app-container">
@@ -69,8 +71,8 @@ if (count($nameParts) >= 2) {
         <div class="profile-avatar">
           <?php if (!empty($user['picture'])): ?>
             <img src="<?php echo htmlspecialchars($user['picture']); ?>" 
-                 alt="<?php echo htmlspecialchars($user['name']); ?>"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                alt="<?php echo htmlspecialchars($user['name']); ?>"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="profile-avatar-fallback" style="display: none;">
               <?php echo $initials; ?>
             </div>
@@ -87,6 +89,7 @@ if (count($nameParts) >= 2) {
             Online
           </div>
         </div>
+        <!-- Logout option will be added here by JavaScript -->
       </div>
     </div>
 
@@ -137,13 +140,5 @@ if (count($nameParts) >= 2) {
   </div>
 
   <script src="../scripts/script.js"></script>
-  <script>
-    // Add logout function
-    function logout() {
-      if (confirm('Are you sure you want to logout?')) {
-        window.location.href = '../logout.php';
-      }
-    }
-  </script>
 </body>
 </html>
