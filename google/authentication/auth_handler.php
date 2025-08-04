@@ -77,7 +77,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'google-login') {
         exit;
     } catch (Exception $e) {
         $_SESSION['auth_error'] = 'Failed to create Google authorization URL: ' . $e->getMessage();
-        header('Location: ../../login.php');
+        header('Location: ../../index.php');
         exit;
     }
 }
@@ -109,13 +109,13 @@ if (isset($_GET['code'])) {
         unset($_SESSION['auth_error']);
 
         // Redirect to welcome page
-        header('Location: ../../users/index.php');
+        header('Location: ../../users/home.php');
         exit;
         
     } catch (Exception $e) {
         error_log('Google OAuth Error: ' . $e->getMessage());
         $_SESSION['auth_error'] = 'Authentication failed: ' . $e->getMessage();
-        header('Location: ../../login.php');
+        header('Location: ../../index.php');
         exit;
     }
 }
@@ -124,12 +124,12 @@ if (isset($_GET['code'])) {
 if (isset($_GET['error'])) {
     $error_description = $_GET['error_description'] ?? 'Authentication was cancelled or failed.';
     $_SESSION['auth_error'] = $error_description;
-    header('Location: ../../login.php');
+    header('Location: ../../index.php');
     exit;
 }
 
 // If we reach here without valid parameters, redirect to login
 $_SESSION['auth_error'] = 'Invalid authentication request.';
-header('Location: ../../login.php');
+header('Location: ../../index.php');
 exit;
 ?>
