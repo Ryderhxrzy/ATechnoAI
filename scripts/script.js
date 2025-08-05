@@ -679,7 +679,7 @@ function showLogoutConfirmation() {
     }
   }).then((result) => {
     if (result.isConfirmed) {
-      window.location.href = '../logout.php';
+      window.location.href = '/google/authentication/auth_handler.php?action=logout';
     }
   });
 }

@@ -1,60 +1,46 @@
 <?php
 session_start();
-ob_start(); // Start output buffering to prevent header errors
+ob_start();
 require_once '../vendor/autoload.php';
 
 /* =============================================
-   ENVIRONMENT CONFIGURATION
+   DYNAMIC PATH CONFIGURATION
    ============================================= */
-function loadConfig() {
-    // 1. Get from Render environment variables
-    $_ENV['GOOGLE_CLIENT_ID'] = getenv('GOOGLE_CLIENT_ID') ?: '';
-    $_ENV['GOOGLE_CLIENT_SECRET'] = getenv('GOOGLE_CLIENT_SECRET') ?: '';
-    
-    // 2. Detect HTTPS (works on both Render and localhost)
-    $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
-               (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-    
-    // 3. Build redirect URI (preserving your exact path structure)
-    $_ENV['GOOGLE_REDIRECT_URI'] = ($isHttps ? 'https://' : 'http://') . 
-                                   $_SERVER['HTTP_HOST'] . 
-                                   '/google/authentication/auth_handler.php';
-}
-
-loadConfig();
+$current_dir = dirname($_SERVER['SCRIPT_NAME']); // Gets /google/authentication
+$base_path = str_replace('/google/authentication', '', $current_dir);
+$is_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
+            (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+$_ENV['BASE_URL'] = ($is_https ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $base_path;
 
 /* =============================================
-   DEBUG OUTPUT (Access with ?debug parameter)
+   LOGOUT HANDLER (REDIRECTS TO INDEX.PHP)
    ============================================= */
-if (isset($_GET['debug'])) {
-    header('Content-Type: text/plain');
-    echo "Current Configuration:\n";
-    echo "CLIENT_ID: " . ($_ENV['GOOGLE_CLIENT_ID'] ?: 'NOT FOUND') . "\n";
-    echo "REDIRECT_URI: " . ($_ENV['GOOGLE_REDIRECT_URI'] ?: 'NOT SET') . "\n";
+if (isset($_GET['action']) && $_GET['action'] === 'logout') {
+    // Complete session destruction
+    $_SESSION = [];
+    session_unset();
+    session_destroy();
+    setcookie(session_name(), '', time()-3600, '/');
+    
+    // Redirect to index.php
+    header('Location: ' . $_ENV['BASE_URL'] . '/index.php');
+    ob_end_flush();
     exit;
 }
 
 /* =============================================
-   VALIDATION
-   ============================================= */
-$clientId = $_ENV['GOOGLE_CLIENT_ID'] ?? '';
-if (empty($clientId)) {
-    die('Error: GOOGLE_CLIENT_ID not configured in Render Environment Variables');
-}
-
-/* =============================================
-   GOOGLE CLIENT SETUP
+   GOOGLE AUTH INITIALIZATION
    ============================================= */
 $client = new Google_Client();
-$client->setClientId($clientId);
-$client->setClientSecret($_ENV['GOOGLE_CLIENT_SECRET'] ?? '');
-$client->setRedirectUri($_ENV['GOOGLE_REDIRECT_URI'] ?? '');
+$client->setClientId(getenv('GOOGLE_CLIENT_ID') ?: '');
+$client->setClientSecret(getenv('GOOGLE_CLIENT_SECRET') ?: '');
+$client->setRedirectUri($_ENV['BASE_URL'] . '/google/authentication/auth_handler.php');
 $client->addScope(['email', 'profile']);
 $client->setAccessType('offline');
 $client->setPrompt('select_account');
 
-// Force HTTPS in production
-if (strpos($_ENV['GOOGLE_REDIRECT_URI'] ?? '', 'https://') === 0) {
+// Enable HTTPS verification in production
+if ($is_https) {
     $client->setHttpClient(new \GuzzleHttp\Client([
         'verify' => true,
         'timeout' => 15
@@ -62,10 +48,10 @@ if (strpos($_ENV['GOOGLE_REDIRECT_URI'] ?? '', 'https://') === 0) {
 }
 
 /* =============================================
-   AUTHENTICATION HANDLERS (YOUR EXACT PATHS)
+   AUTHENTICATION HANDLERS
    ============================================= */
 
-// Handle login request
+// Handle Google login request
 if (isset($_GET['action']) && $_GET['action'] === 'google-login') {
     try {
         $authUrl = $client->createAuthUrl();
@@ -73,14 +59,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'google-login') {
         ob_end_flush();
         exit;
     } catch (Exception $e) {
-        $_SESSION['auth_error'] = 'Failed to create auth URL';
-        header('Location: ../../index.php');
+        $_SESSION['auth_error'] = 'Failed to initialize login';
+        header('Location: ' . $_ENV['BASE_URL'] . '/index.php');
         ob_end_flush();
         exit;
     }
 }
 
-// Handle callback from Google
+// Handle Google callback
 if (isset($_GET['code'])) {
     try {
         $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
@@ -93,7 +79,7 @@ if (isset($_GET['code'])) {
         $oauth = new Google_Service_Oauth2($client);
         $userInfo = $oauth->userinfo->get();
 
-        // Store user session
+        // Store user session data
         $_SESSION['user'] = [
             'email' => $userInfo->email,
             'name' => $userInfo->name,
@@ -103,29 +89,30 @@ if (isset($_GET['code'])) {
             'login_method' => 'google'
         ];
 
-        // Your exact original path
-        header('Location: ../../users/home.php');
+        // Redirect to home page
+        header('Location: ' . $_ENV['BASE_URL'] . '/users/home.php');
         ob_end_flush();
         exit;
         
     } catch (Exception $e) {
-        $_SESSION['auth_error'] = 'Authentication failed';
-        header('Location: ../../index.php');
+        error_log('Google Auth Error: ' . $e->getMessage());
+        $_SESSION['auth_error'] = 'Authentication failed. Please try again.';
+        header('Location: ' . $_ENV['BASE_URL'] . '/index.php');
         ob_end_flush();
         exit;
     }
 }
 
-// Handle errors
+// Handle errors from Google
 if (isset($_GET['error'])) {
     $_SESSION['auth_error'] = $_GET['error_description'] ?? 'Authentication cancelled';
-    header('Location: ../../index.php');
+    header('Location: ' . $_ENV['BASE_URL'] . '/index.php');
     ob_end_flush();
     exit;
 }
 
-// Default fallback
-header('Location: ../../index.php');
+// Default fallback redirect
+header('Location: ' . $_ENV['BASE_URL'] . '/index.php');
 ob_end_flush();
 exit;
 ?>
