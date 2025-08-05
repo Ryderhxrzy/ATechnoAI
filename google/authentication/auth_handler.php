@@ -1,96 +1,131 @@
 <?php
 session_start();
+ob_start(); // Start output buffering to prevent header errors
 require_once '../vendor/autoload.php';
 
-// =============================================
-// ENVIRONMENT CONFIGURATION (PRODUCTION-READY)
-// =============================================
+/* =============================================
+   ENVIRONMENT CONFIGURATION
+   ============================================= */
 function loadConfig() {
-    // 1. First try to get from Render environment
-    $_ENV['GOOGLE_CLIENT_ID'] = getenv('GOOGLE_CLIENT_ID');
-    $_ENV['GOOGLE_CLIENT_SECRET'] = getenv('GOOGLE_CLIENT_SECRET');
+    // 1. Get from Render environment variables
+    $_ENV['GOOGLE_CLIENT_ID'] = getenv('GOOGLE_CLIENT_ID') ?: '';
+    $_ENV['GOOGLE_CLIENT_SECRET'] = getenv('GOOGLE_CLIENT_SECRET') ?: '';
     
-    // 2. If not in Render, check .env file (for local development)
-    if (empty($_ENV['GOOGLE_CLIENT_ID']) && file_exists(__DIR__.'/../../.env')) {
-        $lines = file(__DIR__.'/../../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            if (strpos(trim($line), '#') === 0) continue;
-            if (strpos($line, '=') !== false) {
-                list($key, $value) = explode('=', $line, 2);
-                $key = trim($key);
-                $value = trim($value, " \t\n\r\0\x0B\"'");
-                $_ENV[$key] = $value;
-            }
-        }
-    }
+    // 2. Detect HTTPS (works on both Render and localhost)
+    $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
+               (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
     
-    // 3. Auto-detect redirect URI (preserves your exact path structure)
-    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https://' : 'http://';
-    $baseUrl = $protocol . $_SERVER['HTTP_HOST'];
-    $scriptPath = str_replace('/google/authentication/auth_handler.php', '', $_SERVER['SCRIPT_NAME']);
-    $_ENV['GOOGLE_REDIRECT_URI'] = $baseUrl . $scriptPath . '/google/authentication/auth_handler.php';
+    // 3. Build redirect URI (preserving your exact path structure)
+    $_ENV['GOOGLE_REDIRECT_URI'] = ($isHttps ? 'https://' : 'http://') . 
+                                   $_SERVER['HTTP_HOST'] . 
+                                   '/google/authentication/auth_handler.php';
 }
 
 loadConfig();
 
-// =============================================
-// DEBUGGING OUTPUT (TEMPORARY)
-// =============================================
-echo '<pre>';
-echo 'Current Configuration:'."\n";
-echo 'CLIENT_ID: '.($_ENV['GOOGLE_CLIENT_ID'] ?? 'NOT FOUND')."\n";
-echo 'REDIRECT_URI: '.($_ENV['GOOGLE_REDIRECT_URI'] ?? 'NOT SET')."\n";
-echo '</pre>';
+/* =============================================
+   DEBUG OUTPUT (Access with ?debug parameter)
+   ============================================= */
+if (isset($_GET['debug'])) {
+    header('Content-Type: text/plain');
+    echo "Current Configuration:\n";
+    echo "CLIENT_ID: " . ($_ENV['GOOGLE_CLIENT_ID'] ?: 'NOT FOUND') . "\n";
+    echo "REDIRECT_URI: " . ($_ENV['GOOGLE_REDIRECT_URI'] ?: 'NOT SET') . "\n";
+    exit;
+}
 
-// =============================================
-// VALIDATION (YOUR EXACT REQUIREMENTS)
-// =============================================
+/* =============================================
+   VALIDATION
+   ============================================= */
 $clientId = $_ENV['GOOGLE_CLIENT_ID'] ?? '';
 if (empty($clientId)) {
-    die('Error: GOOGLE_CLIENT_ID not configured. Check Render Environment Variables or .env file');
+    die('Error: GOOGLE_CLIENT_ID not configured in Render Environment Variables');
 }
 
-$clientSecret = $_ENV['GOOGLE_CLIENT_SECRET'] ?? '';
-$redirectUri = $_ENV['GOOGLE_REDIRECT_URI'] ?? '';
-
-// =============================================
-// GOOGLE CLIENT INIT (PRESERVING YOUR PATHS)
-// =============================================
+/* =============================================
+   GOOGLE CLIENT SETUP
+   ============================================= */
 $client = new Google_Client();
 $client->setClientId($clientId);
-$client->setClientSecret($clientSecret);
-$client->setRedirectUri($redirectUri);
+$client->setClientSecret($_ENV['GOOGLE_CLIENT_SECRET'] ?? '');
+$client->setRedirectUri($_ENV['GOOGLE_REDIRECT_URI'] ?? '');
 $client->addScope(['email', 'profile']);
 $client->setAccessType('offline');
+$client->setPrompt('select_account');
 
-// =============================================
-// YOUR ORIGINAL AUTH FLOW (UNCHANGED PATHS)
-// =============================================
+// Force HTTPS in production
+if (strpos($_ENV['GOOGLE_REDIRECT_URI'] ?? '', 'https://') === 0) {
+    $client->setHttpClient(new \GuzzleHttp\Client([
+        'verify' => true,
+        'timeout' => 15
+    ]));
+}
+
+/* =============================================
+   AUTHENTICATION HANDLERS (YOUR EXACT PATHS)
+   ============================================= */
+
+// Handle login request
 if (isset($_GET['action']) && $_GET['action'] === 'google-login') {
-    header('Location: ' . $client->createAuthUrl());
-    exit;
+    try {
+        $authUrl = $client->createAuthUrl();
+        header('Location: ' . $authUrl);
+        ob_end_flush();
+        exit;
+    } catch (Exception $e) {
+        $_SESSION['auth_error'] = 'Failed to create auth URL';
+        header('Location: ../../index.php');
+        ob_end_flush();
+        exit;
+    }
 }
 
+// Handle callback from Google
 if (isset($_GET['code'])) {
-    $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
-    $client->setAccessToken($token);
-    
-    $oauth = new Google_Service_Oauth2($client);
-    $userInfo = $oauth->userinfo->get();
-    
-    $_SESSION['user'] = [
-        'email' => $userInfo->email,
-        'name' => $userInfo->name,
-        'picture' => $userInfo->picture,
-        'id' => $userInfo->id
-    ];
-    
-    // YOUR EXACT PATH STRUCTURE
-    header('Location: ../../users/home.php');
+    try {
+        $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
+        
+        if (isset($token['error'])) {
+            throw new Exception($token['error_description'] ?? 'Invalid authorization code');
+        }
+
+        $client->setAccessToken($token);
+        $oauth = new Google_Service_Oauth2($client);
+        $userInfo = $oauth->userinfo->get();
+
+        // Store user session
+        $_SESSION['user'] = [
+            'email' => $userInfo->email,
+            'name' => $userInfo->name,
+            'picture' => $userInfo->picture,
+            'id' => $userInfo->id,
+            'login_time' => time(),
+            'login_method' => 'google'
+        ];
+
+        // Your exact original path
+        header('Location: ../../users/home.php');
+        ob_end_flush();
+        exit;
+        
+    } catch (Exception $e) {
+        $_SESSION['auth_error'] = 'Authentication failed';
+        header('Location: ../../index.php');
+        ob_end_flush();
+        exit;
+    }
+}
+
+// Handle errors
+if (isset($_GET['error'])) {
+    $_SESSION['auth_error'] = $_GET['error_description'] ?? 'Authentication cancelled';
+    header('Location: ../../index.php');
+    ob_end_flush();
     exit;
 }
 
-// YOUR EXACT FALLBACK PATH
+// Default fallback
 header('Location: ../../index.php');
+ob_end_flush();
 exit;
 ?>
