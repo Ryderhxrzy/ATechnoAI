@@ -7,19 +7,23 @@ require_once '../vendor/autoload.php';
  * Direktang kumukuha ng values mula sa environment variables
  */
 function loadConfig() {
-    // Direktang iload ang mga required variables
+    // Unahin ang system environment variables bago ang .env
     $_ENV['GOOGLE_CLIENT_ID'] = getenv('GOOGLE_CLIENT_ID') ?: '';
     $_ENV['GOOGLE_CLIENT_SECRET'] = getenv('GOOGLE_CLIENT_SECRET') ?: '';
-    $_ENV['GOOGLE_REDIRECT_URI'] = getenv('GOOGLE_REDIRECT_URI') ?: '';
     
-    // Debugging - ito ay dapat tanggalin sa production
-    if (getenv('APP_DEBUG') === 'true') {
-        echo "<pre>Environment Variables:\n";
-        echo "GOOGLE_CLIENT_ID: " . (empty($_ENV['GOOGLE_CLIENT_ID']) ? 'MISSING' : 'SET') . "\n";
-        echo "GOOGLE_CLIENT_SECRET: " . (empty($_ENV['GOOGLE_CLIENT_SECRET']) ? 'MISSING' : 'SET') . "\n";
-        echo "GOOGLE_REDIRECT_URI: " . (empty($_ENV['GOOGLE_REDIRECT_URI']) ? 'MISSING' : 'SET') . "\n";
-        echo "</pre>";
-    }
+    // Auto-detect ang redirect URI base sa environment
+    $isProduction = (getenv('RENDER') !== false);
+    $_ENV['GOOGLE_REDIRECT_URI'] = getenv('GOOGLE_REDIRECT_URI') ?: 
+        ($isProduction 
+            ? 'https://atechnoai-1.onrender.com/google/authentication/auth_handler.php'
+            : 'http://localhost/atechnoai/google/authentication/auth_handler.php');
+
+    // Debugging output - dapat makita sa logs
+    error_log("ENV Variables Loaded: " . print_r([
+        'GOOGLE_CLIENT_ID' => !empty($_ENV['GOOGLE_CLIENT_ID']),
+        'GOOGLE_CLIENT_SECRET' => !empty($_ENV['GOOGLE_CLIENT_SECRET']),
+        'GOOGLE_REDIRECT_URI' => $_ENV['GOOGLE_REDIRECT_URI']
+    ], true));
 }
 
 // Load configuration
